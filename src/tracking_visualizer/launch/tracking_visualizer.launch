@@ -1,0 +1,31 @@
+<!-- 
+  追踪结果可视化 Launch 文件 (RealFlight 版本)
+  
+  用途：
+  1. 实时显示无人机和目标的轨迹
+  2. 显示跟踪误差（距离、速度）
+  3. 保存追踪数据到CSV文件
+  4. 监听状态机状态，只在TRAJ状态时记录数据
+  
+  使用方法：
+  roslaunch tracking_visualizer tracking_visualizer.launch
+-->
+
+<launch>
+  <!-- 参数 -->
+  <arg name="config_file" default="$(find tracking_visualizer)/config/visualizer_params.yaml"/>
+  <arg name="drone_id" default="0"/>
+  
+  <!-- 追踪可视化节点 -->
+  <node pkg="tracking_visualizer" type="tracking_visualizer_node" 
+        name="tracking_visualizer" output="screen">
+    <rosparam file="$(arg config_file)" command="load"/>
+    <param name="drone_id" value="$(arg drone_id)"/>
+  </node>
+  
+  <!-- RViz可视化（可选） -->
+  <!-- <node pkg="rviz" type="rviz" name="tracking_rviz" 
+        args="-d $(find tracking_visualizer)/config/tracking_visualization.rviz" 
+        output="screen"/> -->
+</launch>
+

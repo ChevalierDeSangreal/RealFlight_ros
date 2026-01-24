@@ -1,0 +1,34 @@
+<launch>
+  <!-- Target object position publisher node - publishes circular motion trajectory -->
+  
+  <arg name="drone_id" default="0"/>
+  <arg name="config_file" default="$(find track_test)/config/target_publisher_params.yaml"/>
+  
+  <!-- Time mode: true for SITL (simulation), false for onboard (real hardware) -->
+  <arg name="use_sim_time" default="false"/>
+  
+  <!-- Target Publisher Node -->
+  <node name="target_publisher_node" 
+        pkg="track_test" 
+        type="target_publisher_node" 
+        output="screen">
+    
+    <!-- Load YAML configuration file into node's private namespace -->
+    <rosparam file="$(arg config_file)" command="load"/>
+    
+    <!-- Override drone_id if provided as argument (YAML value will be overridden) -->
+    <param name="drone_id" value="$(arg drone_id)"/>
+    
+    <!-- Set use_sim_time for the node (also affects /clock topic) -->
+    <param name="/use_sim_time" value="$(arg use_sim_time)"/>
+    
+    <!-- All other parameters are loaded from YAML file -->
+    <!-- You can override any parameter here if needed -->
+    <!--
+    <param name="circle_radius" value="2.5"/>
+    <param name="circle_duration" value="25.0"/>
+    -->
+  </node>
+  
+</launch>
+

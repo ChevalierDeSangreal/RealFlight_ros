@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>hover_test</name>
+  <version>0.0.1</version>
+  <description>Hover control test package with optional neural network policy support</description>
+
+  <maintainer email="yichao_gao@u.nus.edu">Your Name</maintainer>
+  <license>BSD-3-Clause</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>roscpp</depend>
+  <depend>std_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>mavros_msgs</depend>
+  <depend>tf2</depend>
+  <depend>tf2_ros</depend>
+  <depend>offboard_state_machine</depend>
+
+  <export>
+  </export>
+</package>
+

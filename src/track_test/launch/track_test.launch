@@ -1,0 +1,64 @@
+<launch>
+  <!-- Track test launch file for circular trajectory with body rate control -->
+  
+  <arg name="drone_id" default="0"/>
+  <arg name="config_file" default="$(find track_test)/config/tflite_model.yaml"/>
+  
+  <!-- Circle parameters -->
+  <arg name="circle_radius" default="2.0"/>
+  <arg name="circle_duration" default="20.0"/>
+  <arg name="circle_init_phase" default="0.0"/>
+  <arg name="circle_times" default="1"/>
+  
+  <!-- Circle center (ENU frame) -->
+  <arg name="circle_center_x" default="0.0"/>
+  <arg name="circle_center_y" default="0.0"/>
+  <arg name="circle_center_z" default="1.2"/>
+  
+  <!-- Ramp times -->
+  <arg name="ramp_up_time" default="3.0"/>
+  <arg name="ramp_down_time" default="3.0"/>
+  
+  <!-- Control parameters -->
+  <arg name="hover_thrust" default="0.76"/>
+  <arg name="max_speed" default="-1.0"/>
+  
+  <!-- Track Test Node -->
+  <node name="track_test_drone_$(arg drone_id)" 
+        pkg="track_test" 
+        type="track_test_node" 
+        output="screen"
+        respawn="false">
+    
+    <!-- Load YAML config directly into node's private namespace -->
+    <!-- model_path is read from YAML config file (tflite_model.yaml) -->
+    <rosparam file="$(arg config_file)" command="load"/>
+    
+    <!-- Set parameters from launch arguments -->
+    <param name="drone_id" value="$(arg drone_id)"/>
+    <param name="circle_radius" value="$(arg circle_radius)"/>
+    <param name="circle_duration" value="$(arg circle_duration)"/>
+    <param name="circle_init_phase" value="$(arg circle_init_phase)"/>
+    <param name="circle_times" value="$(arg circle_times)"/>
+    <param name="circle_center_x" value="$(arg circle_center_x)"/>
+    <param name="circle_center_y" value="$(arg circle_center_y)"/>
+    <param name="circle_center_z" value="$(arg circle_center_z)"/>
+    <param name="ramp_up_time" value="$(arg ramp_up_time)"/>
+    <param name="ramp_down_time" value="$(arg ramp_down_time)"/>
+    <param name="hover_thrust" value="$(arg hover_thrust)"/>
+    <param name="max_speed" value="$(arg max_speed)"/>
+    <param name="timer_period" value="0.02"/>
+    
+    <!-- model_path is loaded from YAML config file above -->
+    <!-- To override, uncomment and set the path below: -->
+    <!-- <param name="model_path" value="/path/to/your/model.tflite"/> -->
+    
+    <!-- Override any parameter from config file here if needed -->
+    <!--
+    <param name="action_update_period" value="0.02"/>
+    <param name="control_send_period" value="0.01"/>
+    <param name="hover_duration" value="15.0"/>
+    -->
+  </node>
+  
+</launch>

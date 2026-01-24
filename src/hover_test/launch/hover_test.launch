@@ -1,0 +1,29 @@
+<launch>
+  <!-- Hover test launch file with TFLite neural network control -->
+  
+  <arg name="drone_id" default="0"/>
+  <arg name="config_file" default="$(find hover_test)/config/tflite_model.yaml"/>
+  
+  <!-- Hover Test Node with Neural Network Control -->
+  <node name="hover_test_drone_$(arg drone_id)" 
+        pkg="hover_test" 
+        type="hover_test_node" 
+        output="screen"
+        respawn="false">
+    
+    <!-- Load YAML config directly into node's private namespace -->
+    <rosparam file="$(arg config_file)" command="load"/>
+    
+    <!-- Set drone_id parameter -->
+    <param name="drone_id" value="$(arg drone_id)"/>
+    
+    <!-- Override any parameter from config file here if needed -->
+    <!--
+    <param name="model_path" value="/path/to/model.tflite"/>
+    <param name="hover_duration" value="3.0"/>
+    <param name="hover_thrust" value="0.47"/>
+    <param name="target_z" value="2.0"/>
+    -->
+  </node>
+  
+</launch>

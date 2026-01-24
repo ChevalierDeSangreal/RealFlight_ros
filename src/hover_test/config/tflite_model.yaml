@@ -1,0 +1,45 @@
+# TFLite Neural Network Model Configuration for Hover Test (ROS1)
+# This configuration file specifies the neural network model and control parameters
+# This file will be loaded directly into the node's private namespace
+
+# Neural network control
+use_neural_control: true
+
+# Model path (absolute path required)
+# You may need to adjust this path based on your installation
+model_path: "/home/core/wangzimo/RealFlight/src/hover_test/config/hoverVer1_policy.tflite"
+
+# Control timing (two-timer architecture)
+action_update_period: 0.1    # 10 Hz (neural network inference)
+control_send_period: 0.01    # 100 Hz (control command transmission)
+
+# Mode stabilization delay (wait for MAVROS to switch to offboard mode)
+mode_stabilization_delay: 0.6
+
+# Hover duration
+hover_duration: 3.0  # TRAJ control duration [seconds]
+
+# Fallback hover parameters (used if neural control fails)
+hover_thrust: 0.47  # Normalized thrust for hovering [0.0-1.0]
+
+# Target point position (in ENU frame, meters)
+# The neural network will control the drone to hover at this target point
+target_x: 0.0   # Target X position (East)
+target_y: 0.0   # Target Y position (North)
+target_z: 2.0   # Target Z position (ENU: positive = above ground, 2.0m altitude)
+
+# Safety thresholds for distance to target
+safety_threshold_horizontal: 5.0  # Maximum horizontal distance to target [meters]
+safety_threshold_vertical: 3.0    # Maximum vertical distance to target [meters]
+
+# Notes:
+# - Two-timer architecture: 10Hz neural network inference + 100Hz command transmission
+# - The model expects observations at 10 Hz (action_update_period=0.1s)
+# - Model input: 130D = 10 history steps × (4 action dims + 9 obs dims) per step
+#   - Buffer format: [action_t-9, obs_t-9, action_t-8, obs_t-8, ..., action_t, obs_t]
+# - Model output: 4D [thrust, omega_x, omega_y, omega_z]
+# - All outputs are in range [-1, 1] due to tanh activation
+# - Observation space (9D, body frame):
+#   - Body velocity (3), Body gravity direction (3), Distance to target point in body frame (3)
+# - Coordinate system: ENU (East-North-Up) for ROS1/MAVROS
+

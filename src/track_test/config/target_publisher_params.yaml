@@ -1,0 +1,27 @@
+# Target object circular motion trajectory configuration for ROS1
+# Unit: space in meters, time in seconds, angles in radians
+# Coordinate system: ENU (East-North-Up) for ROS1/MAVROS
+
+# State machine interaction parameter
+drone_id: 0                  # Drone ID, used to subscribe to state topic
+
+# Circular motion parameters
+circle_radius: 2.0          # Circular trajectory radius [m]
+circle_center_x: 0.0        # Circle center East position (ENU coordinate system) [m]
+circle_center_y: 0.0        # Circle center North position (ENU coordinate system) [m]
+circle_center_z: 1.2        # Circle center Up position (ENU coordinate system, positive is up) [m]
+circle_init_phase: 0.0      # Initial phase angle [rad]
+circle_times: 1             # Number of circles
+# circle_duration: 20.0     # Single circle duration [s] - r=2.0 corresponds to linear velocity ~0.628 m/s
+# circle_duration: 25.13    # For test: v=0.5 m/s, a=0.125 m/s^2
+circle_duration: 10.0       # Single circle duration [s]
+
+# Motion smoothing parameters
+ramp_up_time: 3.0           # Acceleration time [s]
+ramp_down_time: 3.0         # Deceleration time [s]
+stationary_time: 3.0        # Initial stationary time [s] (time to stay at initial position before circular motion starts)
+
+# Control parameters
+timer_period: 0.02          # Publish period (50Hz) [s]
+max_speed: -1.0             # Maximum linear speed limit [m/s] (negative value means no limit)
+

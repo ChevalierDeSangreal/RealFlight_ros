@@ -1,0 +1,6 @@
+scripts/*.png
+*pyc
+build/
+devel/
+.catkin_tools/
+.catkin_workspace

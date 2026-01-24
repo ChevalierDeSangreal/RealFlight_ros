@@ -1,0 +1,50 @@
+# TFLite Neural Network Model Configuration for Track Test
+# This configuration file specifies the neural network model and control parameters
+# This file will be loaded directly into the node's private namespace
+
+# Neural network control
+use_neural_control: true
+
+# Model path (onboard mode - absolute path)
+# You may need to adjust this path based on your installation
+model_path: "/home/core/wangzimo/RealFlight_ros/src/track_test/config/trackVer13_policyVer5.tflite"
+# model_path: "/home/core/wangzimo/Aquila/aquila/param/tflite/trackVer12_policy_stablerer.tflite"
+
+# Model path (SITL mode - absolute path)
+model_path_sitl: "/home/core/wangzimo/RealFlight_ros/src/track_test/config/trackVer13_policyVer5.tflite"
+# model_path_sitl: "/home/carlson/wangzimo/RealFlight/src/track_test/config/trackVer8_policy_stabler.tflite"
+# model_path_sitl: "/home/core/wangzimo/Aquila/aquila/param/tflite/trackVer12_policy_stablerer.tflite"
+
+# Control timing (50Hz version - matches 50-step buffer)
+action_update_period: 0.02  # 50 Hz neural network inference (dt=0.02s)
+control_send_period: 0.01    # 100 Hz control loop for command transmission
+hover_duration: 25.0  # Duration to run trajectory control [seconds]
+
+# Fallback hover parameters (used if neural control fails)
+hover_thrust: 0.76  # Normalized thrust for hovering [0.0-1.0]
+
+# Mode stabilization delay
+mode_stabilization_delay: 0.6  # Wait 0.6s for mode switch before starting neural control
+
+# ========== Target Generation Configuration ==========
+# Two modes:
+# 1. Static mode (use_target_topic: false): Generate fixed target in front of drone when entering TRAJ mode
+# 2. Topic mode (use_target_topic: true): Subscribe to ROS1 topic for real-time target position
+
+use_target_topic: true  # false=静态模式, true=话题模式
+target_position_topic: "/target/position"  # 目标位置话题 (geometry_msgs/PointStamped)
+target_velocity_topic: "/target/velocity"  # 目标速度话题 (geometry_msgs/TwistStamped)
+target_offset_distance: 1.0  # 静态模式：目标距离无人机的距离[m]（正前方）
+  
+# Notes:
+# - The model expects observations at 50 Hz (dt=0.02s) for this configuration
+# - Action update happens at 50Hz, control commands are sent at 100Hz
+# - Model input: 650D = 50 history steps × (4 action dims + 9 obs dims) per step
+#   - Buffer format: [action_t-49, obs_t-49, action_t-48, obs_t-48, ..., action_t, obs_t]
+# - Model output: 4D [thrust, omega_x, omega_y, omega_z]
+# - All outputs are in range [-1, 1] due to tanh activation
+# - Observation space (9D, body frame):
+#   - Body velocity (3), Body gravity direction (3), Body target position (3)
+
+
+

@@ -1,0 +1,32 @@
+<launch>
+  <!-- Track test launch file for neural network control -->
+  
+  <arg name="drone_id" default="0"/>
+  <arg name="mode" default="onboard" doc="Operation mode: onboard (default) or sitl"/>
+  <arg name="config_file" default="$(find track_test)/config/tflite_model.yaml" doc="Path to YAML configuration file (optional)"/>
+  <arg name="use_target_topic" default="false" doc="Use ROS1 topic for target (true) or static target (false)"/>
+  
+  <!-- Load YAML config to config namespace (node will read from here if not in private namespace) -->
+  <rosparam file="$(arg config_file)" command="load" ns="track_test_drone_$(arg drone_id)"/>
+  
+  <!-- Track Test Node -->
+  <node name="track_test_drone_$(arg drone_id)" 
+        pkg="track_test" 
+        type="track_test_node" 
+        output="screen">
+    
+    <param name="drone_id" value="$(arg drone_id)"/>
+    
+    <!-- Node will automatically read parameters from track_test_drone_X namespace if not in private namespace -->
+    <!-- You can override any parameter here if needed -->
+    <!--
+    <param name="model_path" value="/path/to/custom/model.tflite"/>
+    <param name="hover_duration" value="5.0"/>
+    <param name="use_target_topic" value="true"/>
+    -->
+  </node>
+  
+</launch>
+
+
+

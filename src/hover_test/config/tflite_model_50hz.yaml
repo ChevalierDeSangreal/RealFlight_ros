@@ -1,0 +1,46 @@
+# TFLite Neural Network Model Configuration for Hover Test (50Hz Control, ROS1)
+# This configuration file specifies the neural network model and control parameters for 50Hz control frequency
+# This file will be loaded directly into the node's private namespace
+
+# Neural network control
+use_neural_control: true
+
+# Model path (absolute path required)
+# You may need to adjust this path based on your installation
+# Note: This should be a model trained for 50Hz control (dt=0.02s)
+model_path: "/home/core/wangzimo/RealFlight/src/hover_test/config/hoverVer2_policy.tflite"
+
+# Control timing (two-timer architecture)
+action_update_period: 0.02   # 50 Hz neural network inference (dt=0.02s)
+control_send_period: 0.01    # 100 Hz control loop for command transmission
+
+# Mode stabilization delay (wait for MAVROS to switch to offboard mode)
+mode_stabilization_delay: 0.6
+
+# Hover duration
+hover_duration: 10.0  # TRAJ control duration [seconds]
+
+# Fallback hover parameters (used if neural control fails)
+hover_thrust: 0.76  # Normalized thrust for hovering [0.0-1.0]
+
+# Target point position (in ENU frame, meters)
+# The neural network will control the drone to hover at this target point
+target_x: 0.0   # Target X position (East)
+target_y: 0.0   # Target Y position (North)
+target_z: 1.2   # Target Z position (ENU: positive = above ground, 2.0m altitude)
+
+# Safety thresholds for distance to target
+safety_threshold_horizontal: 5.0  # Maximum horizontal distance to target [meters]
+safety_threshold_vertical: 3.0    # Maximum vertical distance to target [meters]
+
+# Notes:
+# - Two-timer architecture: 50Hz neural network inference + 100Hz command transmission
+# - The model expects observations at 50 Hz (action_update_period=0.02s) for this configuration
+# - Model input: 650D = 50 history steps × (4 action dims + 9 obs dims) per step
+#   - Buffer format: [action_t-49, obs_t-49, action_t-48, obs_t-48, ..., action_t, obs_t]
+# - Model output: 4D [thrust, omega_x, omega_y, omega_z]
+# - All outputs are in range [-1, 1] due to tanh activation
+# - Observation space (9D, body frame):
+#   - Body velocity (3), Body gravity direction (3), Distance to target point in body frame (3)
+# - Coordinate system: ENU (East-North-Up) for ROS1/MAVROS
+

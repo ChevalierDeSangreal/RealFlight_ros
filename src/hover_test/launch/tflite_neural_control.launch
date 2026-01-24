@@ -1,0 +1,47 @@
+<launch>
+  <!-- Hover test launch file with TFLite neural network control -->
+  
+  <arg name="drone_id" default="0"/>
+  <arg name="config_file" default="$(find hover_test)/config/tflite_model.yaml"/>
+  
+  <!-- Model path from config file (matching config/tflite_model.yaml) -->
+  <arg name="model_path" default="/home/core/wangzimo/RealFlight/src/hover_test/config/hoverVer1_policy.tflite"/>
+  
+  <!-- Hover Test Node with Neural Network Control -->
+  <node name="hover_test_drone_$(arg drone_id)" 
+        pkg="hover_test" 
+        type="hover_test_node" 
+        output="screen"
+        respawn="false">
+    
+    <param name="drone_id" value="$(arg drone_id)"/>
+    
+    <!-- Load YAML config to config namespace (node will read from here if not in private namespace) -->
+    <rosparam file="$(arg config_file)" command="load" ns="hover_test_node"/>
+    
+    <!-- Node will automatically read parameters from hover_test_node namespace if not in private namespace -->
+    <!-- You can override any parameter here if needed -->
+    <!--
+    <param name="model_path" value="/path/to/custom/model.tflite"/>
+    <param name="hover_duration" value="5.0"/>
+    -->
+    
+    <!-- Override config file parameters with launch arguments if needed -->
+    <!--
+    <param name="use_neural_control" value="true"/>
+    <param name="model_path" value="/path/to/model.tflite"/>
+    <param name="action_update_period" value="0.1"/>
+    <param name="control_send_period" value="0.01"/>
+    <param name="mode_stabilization_delay" value="0.6"/>
+    <param name="hover_duration" value="3.0"/>
+    <param name="hover_thrust" value="0.251"/>
+    <param name="safety_threshold_horizontal" value="5.0"/>
+    <param name="safety_threshold_vertical" value="3.0"/>
+    <param name="target_x" value="0.0"/>
+    <param name="target_y" value="0.0"/>
+    <param name="target_z" value="1.2"/>
+    -->
+  </node>
+  
+</launch>
+

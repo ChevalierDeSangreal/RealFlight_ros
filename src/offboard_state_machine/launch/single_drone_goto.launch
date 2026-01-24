@@ -1,0 +1,29 @@
+<launch>
+  <!-- Launch offboard FSM with a specific GOTO target -->
+  
+  <arg name="drone_id" default="0"/>
+  
+  <!-- GOTO target position (NED frame, meters) -->
+  <arg name="goto_x" default="2.0"/>
+  <arg name="goto_y" default="2.0"/>
+  <arg name="goto_z" default="1.5"/>
+  
+  <!-- Other parameters -->
+  <arg name="takeoff_alt" default="1.2"/>
+  <arg name="goto_max_vel" default="0.8"/>
+  <arg name="landing_max_vel" default="0.3"/>
+  <arg name="traj_use_position_control" default="false"/>
+  
+  <include file="$(find offboard_state_machine)/launch/single_drone.launch">
+    <arg name="drone_id" value="$(arg drone_id)"/>
+    <arg name="takeoff_alt" value="$(arg takeoff_alt)"/>
+    <arg name="goto_max_vel" value="$(arg goto_max_vel)"/>
+    <arg name="landing_max_vel" value="$(arg landing_max_vel)"/>
+    <arg name="goto_x" value="$(arg goto_x)"/>
+    <arg name="goto_y" value="$(arg goto_y)"/>
+    <arg name="goto_z" value="$(arg goto_z)"/>
+    <arg name="traj_use_position_control" value="$(arg traj_use_position_control)"/>
+  </include>
+  
+</launch>
+
