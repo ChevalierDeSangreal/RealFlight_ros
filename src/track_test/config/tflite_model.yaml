@@ -7,11 +7,11 @@ use_neural_control: true
 
 # Model path (onboard mode - absolute path)
 # You may need to adjust this path based on your installation
-model_path: "/home/core/wangzimo/RealFlight_ros/src/track_test/config/trackVer13_policyVer5.tflite"
+model_path: "/home/core/wangzimo/RealFlight_ros/src/track_test/config/trackVer16_policyVer6.tflite"
 # model_path: "/home/core/wangzimo/Aquila/aquila/param/tflite/trackVer12_policy_stablerer.tflite"
 
 # Model path (SITL mode - absolute path)
-model_path_sitl: "/home/core/wangzimo/RealFlight_ros/src/track_test/config/trackVer13_policyVer5.tflite"
+model_path_sitl: "/home/core/wangzimo/RealFlight_ros/src/track_test/config/trackVer16_policyVer6.tflite"
 # model_path_sitl: "/home/carlson/wangzimo/RealFlight/src/track_test/config/trackVer8_policy_stabler.tflite"
 # model_path_sitl: "/home/core/wangzimo/Aquila/aquila/param/tflite/trackVer12_policy_stablerer.tflite"
 

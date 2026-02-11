@@ -23,9 +23,10 @@
     <param name="drone_id" value="$(arg drone_id)"/>
   </node>
   
-  <!-- RViz可视化（可选） -->
-  <!-- <node pkg="rviz" type="rviz" name="tracking_rviz" 
+  <!-- RViz可视化 -->
+  <arg name="use_rviz" default="true"/>
+  <node if="$(arg use_rviz)" pkg="rviz" type="rviz" name="tracking_rviz" 
         args="-d $(find tracking_visualizer)/config/tracking_visualization.rviz" 
-        output="screen"/> -->
+        output="screen" respawn="true"/>
 </launch>
 

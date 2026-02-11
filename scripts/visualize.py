@@ -47,12 +47,10 @@ target_velocity_magnitude_sorted = np.sqrt(data_sorted['target_vx']**2 + data_so
 velocity_diff_sorted = drone_velocity_magnitude_sorted - target_velocity_magnitude_sorted
 
 # 计算无人机机体x轴与到目标方向的夹角
-# 在ENU坐标系中，机体x轴方向通过yaw角确定
-drone_yaw_sorted = data_sorted['drone_yaw']  # ENU坐标系中的yaw角
-
-# 机体x轴在世界坐标系中的方向（ENU: x=East, y=North）
-body_x_world_x = np.cos(drone_yaw_sorted)  # x分量
-body_x_world_y = np.sin(drone_yaw_sorted)  # y分量
+# 使用完整的roll、pitch、yaw构建旋转矩阵
+drone_roll_sorted = data_sorted['drone_roll']    # ENU坐标系中的roll角
+drone_pitch_sorted = data_sorted['drone_pitch']  # ENU坐标系中的pitch角
+drone_yaw_sorted = data_sorted['drone_yaw']      # ENU坐标系中的yaw角
 
 # 从无人机到目标的方向向量（归一化）
 direction_norm = np.sqrt(dx_sorted**2 + dy_sorted**2 + dz_sorted**2)
@@ -60,22 +58,52 @@ direction_x_normalized = dx_sorted / (direction_norm + 1e-8)
 direction_y_normalized = dy_sorted / (direction_norm + 1e-8)
 direction_z_normalized = dz_sorted / (direction_norm + 1e-8)
 
-# 将目标方向向量旋转到机体系（仅使用yaw，等价于绕世界z轴旋转 -yaw）
-# 机体系下，机体x轴固定为 [1, 0, 0]，因此可直接用机体系分量计算夹角及投影夹角
-direction_body_x = body_x_world_x * dx_sorted + body_x_world_y * dy_sorted
-direction_body_y = -body_x_world_y * dx_sorted + body_x_world_x * dy_sorted
-direction_body_z = dz_sorted
+# 使用ZYX欧拉角顺序（yaw-pitch-roll）构建旋转矩阵，将世界坐标转换到机体坐标
+# R = Rz(yaw) * Ry(pitch) * Rx(roll)
+# 这里我们需要逆旋转：R^T = Rx(-roll) * Ry(-pitch) * Rz(-yaw)
+# 简化：直接用旋转矩阵计算
 
-# 3D夹角：机体x轴与目标方向（3D）夹角
-cos_angle_3d = body_x_world_x * direction_x_normalized + body_x_world_y * direction_y_normalized
-cos_angle_3d = np.clip(cos_angle_3d, -1.0, 1.0)
+cos_roll = np.cos(drone_roll_sorted)
+sin_roll = np.sin(drone_roll_sorted)
+cos_pitch = np.cos(drone_pitch_sorted)
+sin_pitch = np.sin(drone_pitch_sorted)
+cos_yaw = np.cos(drone_yaw_sorted)
+sin_yaw = np.sin(drone_yaw_sorted)
+
+# 世界坐标系到机体坐标系的旋转矩阵（每个时间步都不同）
+# 机体x轴在世界坐标系中的表示
+body_x_world_x = cos_yaw * cos_pitch
+body_x_world_y = sin_yaw * cos_pitch
+body_x_world_z = -sin_pitch
+
+# 将目标方向向量转换到机体坐标系
+# R^T * direction_world = direction_body
+direction_body_x = (cos_yaw * cos_pitch * dx_sorted + 
+                   sin_yaw * cos_pitch * dy_sorted - 
+                   sin_pitch * dz_sorted)
+direction_body_y = ((cos_yaw * sin_pitch * sin_roll - sin_yaw * cos_roll) * dx_sorted +
+                   (sin_yaw * sin_pitch * sin_roll + cos_yaw * cos_roll) * dy_sorted +
+                   cos_pitch * sin_roll * dz_sorted)
+direction_body_z = ((cos_yaw * sin_pitch * cos_roll + sin_yaw * sin_roll) * dx_sorted +
+                   (sin_yaw * sin_pitch * cos_roll - cos_yaw * sin_roll) * dy_sorted +
+                   cos_pitch * cos_roll * dz_sorted)
+
+# 归一化机体坐标系中的方向向量
+direction_body_norm = np.sqrt(direction_body_x**2 + direction_body_y**2 + direction_body_z**2)
+direction_body_x_normalized = direction_body_x / (direction_body_norm + 1e-8)
+direction_body_y_normalized = direction_body_y / (direction_body_norm + 1e-8)
+direction_body_z_normalized = direction_body_z / (direction_body_norm + 1e-8)
+
+# 3D夹角：机体x轴[1,0,0]与目标方向的夹角
+# cos(angle) = dot([1,0,0], direction_body_normalized) = direction_body_x_normalized
+cos_angle_3d = np.clip(direction_body_x_normalized, -1.0, 1.0)
 angle_3d_deg_sorted = np.degrees(np.arccos(cos_angle_3d))
 
 # 投影夹角（机体系）：
-# - 在x-y平面：反映朝向相对y方向的偏转（水平偏转）
-# - 在x-z平面：反映朝向相对z方向的偏转（俯仰方向偏转）
-angle_proj_y_deg_sorted = np.degrees(np.arctan2(np.abs(direction_body_y), direction_body_x))
-angle_proj_z_deg_sorted = np.degrees(np.arctan2(np.abs(direction_body_z), direction_body_x))
+# - 在x-y平面：反映目标相对机体y方向的偏转（水平偏转，正值=右侧，负值=左侧）
+# - 在x-z平面：反映目标相对机体z方向的偏转（俯仰偏转，正值=上方，负值=下方）
+angle_proj_y_deg_sorted = np.degrees(np.arctan2(direction_body_y, direction_body_x))
+angle_proj_z_deg_sorted = np.degrees(np.arctan2(direction_body_z, direction_body_x))
 
 # 绘制五个子图
 fig, axes = plt.subplots(5, 1, figsize=(12, 18))

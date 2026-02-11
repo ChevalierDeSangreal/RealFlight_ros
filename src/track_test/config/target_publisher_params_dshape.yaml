@@ -1,0 +1,37 @@
+# Target object trajectory configuration - D-shape (D型轨迹)
+# Unit: space in meters, time in seconds, angles in radians
+# Coordinate system: ENU (East-North-Up) for ROS1/MAVROS
+
+# State machine interaction parameter
+drone_id: 0                  # Drone ID, used to subscribe to state topic
+
+# Trajectory type selection
+trajectory_type: "d_shape"   # D型轨迹 (半圆 + 直线)
+
+# Trajectory parameters
+# NOTE: Drone GOTO position is at trajectory_center = [0, 0, 1.2]
+# D-shape uses 4 G2-continuous Bezier curve segments
+# Starting point is hardcoded at (1, 0) in Bezier control points
+# So as long as trajectory_center_x = 0.0，起点始终在(1, 0)
+trajectory_size: 3        # Trajectory size [m] (scales D-shape dimensions: width & height; base=2.0m)
+trajectory_center_x: 0.0     # Trajectory center East position (ENU) [m] - Drone GOTO position
+trajectory_center_y: 0.0     # Trajectory center North position (ENU) [m]
+trajectory_center_z: 1.0     # Trajectory center Up position (ENU, positive is up) [m]
+trajectory_times: 1          # Number of D-shape cycles
+
+# Velocity-based parameters (NEW: replaces fixed trajectory_duration)
+max_linear_velocity: 2     # Maximum linear velocity [m/s]
+linear_acceleration: 1     # Linear acceleration/deceleration [m/s²]
+# trajectory_duration, ramp_up_time, ramp_down_time will be AUTO-CALCULATED
+
+# Initial phase (not used for d_shape, but kept for compatibility)
+circle_init_phase: 0.0       # Initial phase angle [rad]
+
+# Motion smoothing parameters
+stationary_time: 3.0         # Initial stationary time [s]
+                             # Initial position: 1m in front of trajectory center
+
+# Control parameters
+timer_period: 0.02           # Publish period (50Hz) [s]
+max_speed: -1.0              # Maximum linear speed limit [m/s] (negative = no limit)
+

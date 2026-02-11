@@ -601,7 +601,7 @@ void TrackTestNode::publish_current_action()
   // Denormalize angular rates: [-1, 1] -> [-omega_max, omega_max]
   constexpr float OMEGA_MAX_X = 2.0f;  // Roll rate max [rad/s]
   constexpr float OMEGA_MAX_Y = 2.0f;  // Pitch rate max [rad/s]
-  constexpr float OMEGA_MAX_Z = 2.0f;  // Yaw rate max [rad/s]
+  constexpr float OMEGA_MAX_Z = 3.0f;  // Yaw rate max [rad/s]
   
   // Neural network outputs body rates in FRD frame (NED-based training)
   // MAVROS expects body rates in FLU frame (ROS standard)

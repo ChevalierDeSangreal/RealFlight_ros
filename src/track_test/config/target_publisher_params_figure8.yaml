@@ -1,0 +1,33 @@
+# Target object trajectory configuration - Figure-8 (八字轨迹)
+# Unit: space in meters, time in seconds, angles in radians
+# Coordinate system: ENU (East-North-Up) for ROS1/MAVROS
+
+# State machine interaction parameter
+drone_id: 0                  # Drone ID, used to subscribe to state topic
+
+# Trajectory type selection
+trajectory_type: "figure8"   # 八字轨迹
+
+# Trajectory parameters
+# NOTE: Drone GOTO position is at trajectory_center
+# Trajectory is offset +1m in x-direction, so starting point is 1m ahead of drone
+trajectory_size: 4.0         # Trajectory size [m] (scale parameter for figure-8)
+trajectory_center_x: 0.0     # Trajectory center East position (ENU) [m] - Drone GOTO position
+trajectory_center_y: 0.0     # Trajectory center North position (ENU) [m]
+trajectory_center_z: 1.2     # Trajectory center Up position (ENU, positive is up) [m]
+trajectory_times: 1          # Number of figure-8 cycles
+trajectory_duration: 6.0     # Single cycle duration [s]
+
+# Initial phase (not used for figure8, but kept for compatibility)
+circle_init_phase: 0.0       # Initial phase angle [rad]
+
+# Motion smoothing parameters
+ramp_up_time: 3.0            # Acceleration time [s]
+ramp_down_time: 3.0          # Deceleration time [s]
+stationary_time: 3.0         # Initial stationary time [s]
+                             # Initial position: 1m in front of trajectory center
+
+# Control parameters
+timer_period: 0.02           # Publish period (50Hz) [s]
+max_speed: -1.0              # Maximum linear speed limit [m/s] (negative = no limit)
+

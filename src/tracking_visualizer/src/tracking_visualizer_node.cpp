@@ -1,6 +1,12 @@
 #include "tracking_visualizer/tracking_visualizer_node.hpp"
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <cmath>
+
+// 检查数值是否有效（非 NaN 和无穷大）
+static bool is_valid_point(const geometry_msgs::Point& p) {
+  return std::isfinite(p.x) && std::isfinite(p.y) && std::isfinite(p.z);
+}
 
 TrackingVisualizerNode::TrackingVisualizerNode(ros::NodeHandle& nh, 
                                                ros::NodeHandle& nh_private)
@@ -48,6 +54,8 @@ TrackingVisualizerNode::TrackingVisualizerNode(ros::NodeHandle& nh,
   // 初始化路径
   drone_path_.header.frame_id = "world";
   target_path_.header.frame_id = "world";
+  drone_path_.header.stamp = ros::Time::now();
+  target_path_.header.stamp = ros::Time::now();
   
   // 订阅器
   drone_pose_sub_ = nh_.subscribe<geometry_msgs::PoseStamped>(
@@ -93,7 +101,7 @@ TrackingVisualizerNode::TrackingVisualizerNode(ros::NodeHandle& nh,
     output_file_ = std::make_unique<std::ofstream>(output_file_path_);
     if (output_file_->is_open()) {
       // 写入CSV表头
-      *output_file_ << "timestamp,drone_x,drone_y,drone_z,drone_yaw,"
+      *output_file_ << "timestamp,drone_x,drone_y,drone_z,drone_roll,drone_pitch,drone_yaw,"
                     << "target_x,target_y,target_z,"
                     << "drone_vx,drone_vy,drone_vz,"
                     << "target_vx,target_vy,target_vz,"
@@ -177,12 +185,18 @@ void TrackingVisualizerNode::state_callback(const std_msgs::Int32::ConstPtr& msg
 
 void TrackingVisualizerNode::drone_pose_callback(
     const geometry_msgs::PoseStamped::ConstPtr& msg) {
+  if (!std::isfinite(msg->pose.position.x) || !std::isfinite(msg->pose.position.y) || 
+      !std::isfinite(msg->pose.position.z)) {
+    return;
+  }
+  
   current_drone_pose_ = *msg;
+  current_drone_pose_.header.frame_id = "world";
   drone_pose_received_ = true;
   
   // 只在TRAJ状态或不限制时添加到轨迹
   if (!only_record_in_traj_ || in_traj_state_) {
-    drone_path_.poses.push_back(*msg);
+    drone_path_.poses.push_back(current_drone_pose_);
     
     // 限制轨迹点数
     if (drone_path_.poses.size() > static_cast<size_t>(max_trajectory_points_)) {
@@ -234,7 +248,7 @@ void TrackingVisualizerNode::drone_pose_callback(
         }
         *output_file_ << relative_time << ","
                       << data.drone_pos.x << "," << data.drone_pos.y << "," 
-                      << data.drone_pos.z << "," << yaw << ","
+                      << data.drone_pos.z << "," << roll << "," << pitch << "," << yaw << ","
                       << data.target_pos.x << "," << data.target_pos.y << "," 
                       << data.target_pos.z << ","
                       << data.drone_vel.x << "," << data.drone_vel.y << "," 
@@ -254,20 +268,31 @@ void TrackingVisualizerNode::drone_pose_callback(
 
 void TrackingVisualizerNode::drone_vel_callback(
     const geometry_msgs::TwistStamped::ConstPtr& msg) {
+  if (!std::isfinite(msg->twist.linear.x) || !std::isfinite(msg->twist.linear.y) || 
+      !std::isfinite(msg->twist.linear.z)) {
+    return;
+  }
+  
   current_drone_vel_ = *msg;
+  current_drone_vel_.header.frame_id = "world";
   drone_vel_received_ = true;
 }
 
 void TrackingVisualizerNode::target_pos_callback(
     const geometry_msgs::PointStamped::ConstPtr& msg) {
+  if (!std::isfinite(msg->point.x) || !std::isfinite(msg->point.y) || !std::isfinite(msg->point.z)) {
+    return;
+  }
+  
   current_target_pos_ = *msg;
+  current_target_pos_.header.frame_id = "world";
   target_pos_received_ = true;
   
   // 只在TRAJ状态或不限制时添加到轨迹
   if (!only_record_in_traj_ || in_traj_state_) {
     geometry_msgs::PoseStamped pose;
-    pose.header = msg->header;
-    pose.pose.position = msg->point;
+    pose.header = current_target_pos_.header;
+    pose.pose.position = current_target_pos_.point;
     pose.pose.orientation.w = 1.0;
     target_path_.poses.push_back(pose);
     
@@ -280,33 +305,63 @@ void TrackingVisualizerNode::target_pos_callback(
 
 void TrackingVisualizerNode::target_vel_callback(
     const geometry_msgs::TwistStamped::ConstPtr& msg) {
+  if (!std::isfinite(msg->twist.linear.x) || !std::isfinite(msg->twist.linear.y) || 
+      !std::isfinite(msg->twist.linear.z)) {
+    return;
+  }
+  
   current_target_vel_ = *msg;
+  current_target_vel_.header.frame_id = "world";
   target_vel_received_ = true;
 }
 
 void TrackingVisualizerNode::visualization_timer_callback(
     const ros::TimerEvent& event) {
-  if (!drone_pose_received_ || !target_pos_received_) {
-    return;
-  }
-  
   publish_trajectories();
   publish_error_markers();
-  publish_statistics();
+  
+  if (drone_pose_received_ && target_pos_received_) {
+    publish_statistics();
+  }
 }
 
 void TrackingVisualizerNode::publish_trajectories() {
   // 发布无人机轨迹
   drone_path_.header.stamp = ros::Time::now();
+  drone_path_.header.frame_id = "world";
   drone_path_pub_.publish(drone_path_);
   
   // 发布目标轨迹
   target_path_.header.stamp = ros::Time::now();
+  target_path_.header.frame_id = "world";
   target_path_pub_.publish(target_path_);
 }
 
 void TrackingVisualizerNode::publish_error_markers() {
   visualization_msgs::MarkerArray marker_array;
+  
+  // 检查数据是否有效
+  if (!drone_pose_received_ || !target_pos_received_) {
+    // 如果没有数据，发布删除所有markers的消息
+    visualization_msgs::Marker delete_marker;
+    delete_marker.action = visualization_msgs::Marker::DELETEALL;
+    marker_array.markers.push_back(delete_marker);
+    error_marker_pub_.publish(marker_array);
+    return;
+  }
+  
+  // 检查数据有效性（防止 NaN）
+  bool drone_valid = is_valid_point(current_drone_pose_.pose.position);
+  bool target_valid = is_valid_point(current_target_pos_.point);
+  
+  if (!drone_valid || !target_valid) {
+    // 如果数据无效，发布删除所有markers的消息
+    visualization_msgs::Marker delete_marker;
+    delete_marker.action = visualization_msgs::Marker::DELETEALL;
+    marker_array.markers.push_back(delete_marker);
+    error_marker_pub_.publish(marker_array);
+    return;
+  }
   
   // 1. 连线marker - 显示当前误差
   visualization_msgs::Marker line_marker;
@@ -316,6 +371,7 @@ void TrackingVisualizerNode::publish_error_markers() {
   line_marker.id = 0;
   line_marker.type = visualization_msgs::Marker::LINE_STRIP;
   line_marker.action = visualization_msgs::Marker::ADD;
+  line_marker.lifetime = ros::Duration(0.2);  // 设置lifetime，确保旧marker被删除
   line_marker.scale.x = 0.02;  // 线宽
   line_marker.color.r = error_color_.r;
   line_marker.color.g = error_color_.g;
@@ -334,6 +390,7 @@ void TrackingVisualizerNode::publish_error_markers() {
   text_marker.id = 1;
   text_marker.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
   text_marker.action = visualization_msgs::Marker::ADD;
+  text_marker.lifetime = ros::Duration(0.2);  // 设置lifetime
   
   // 文本位置在无人机和目标中间
   text_marker.pose.position.x = 
@@ -342,6 +399,7 @@ void TrackingVisualizerNode::publish_error_markers() {
     (current_drone_pose_.pose.position.y + current_target_pos_.point.y) / 2.0;
   text_marker.pose.position.z = 
     (current_drone_pose_.pose.position.z + current_target_pos_.point.z) / 2.0 + 0.3;
+  text_marker.pose.orientation.w = 1.0;  // 确保orientation有效
   
   text_marker.scale.z = 0.15;  // 文本大小
   text_marker.color.r = 1.0;
@@ -367,6 +425,7 @@ void TrackingVisualizerNode::publish_error_markers() {
   drone_marker.id = 2;
   drone_marker.type = visualization_msgs::Marker::SPHERE;
   drone_marker.action = visualization_msgs::Marker::ADD;
+  drone_marker.lifetime = ros::Duration(0.2);  // 设置lifetime
   drone_marker.pose = current_drone_pose_.pose;
   drone_marker.scale.x = 0.2;
   drone_marker.scale.y = 0.2;
@@ -385,6 +444,7 @@ void TrackingVisualizerNode::publish_error_markers() {
   target_marker.id = 3;
   target_marker.type = visualization_msgs::Marker::SPHERE;
   target_marker.action = visualization_msgs::Marker::ADD;
+  target_marker.lifetime = ros::Duration(0.2);  // 设置lifetime
   target_marker.pose.position = current_target_pos_.point;
   target_marker.pose.orientation.w = 1.0;
   target_marker.scale.x = 0.15;
@@ -395,6 +455,27 @@ void TrackingVisualizerNode::publish_error_markers() {
   target_marker.color.b = target_color_.b;
   target_marker.color.a = target_color_.a;
   marker_array.markers.push_back(target_marker);
+  
+  // 5. 箭头marker - 显示无人机 x 轴朝向（机头方向）
+  visualization_msgs::Marker heading_arrow;
+  heading_arrow.header.frame_id = "world";
+  heading_arrow.header.stamp = ros::Time::now();
+  heading_arrow.ns = "drone_heading";
+  heading_arrow.id = 4;
+  heading_arrow.type = visualization_msgs::Marker::ARROW;
+  heading_arrow.action = visualization_msgs::Marker::ADD;
+  heading_arrow.lifetime = ros::Duration(0.2);  // 设置lifetime
+  heading_arrow.pose.position = current_drone_pose_.pose.position;
+  heading_arrow.pose.orientation = current_drone_pose_.pose.orientation;
+  // 箭头尺寸：长度、宽度、高度
+  heading_arrow.scale.x = 0.5;  // 箭头长度（沿 x 轴方向）
+  heading_arrow.scale.y = 0.08; // 箭头宽度
+  heading_arrow.scale.z = 0.08; // 箭头高度
+  heading_arrow.color.r = 0.0;  // 蓝色箭头表示机头方向
+  heading_arrow.color.g = 0.0;
+  heading_arrow.color.b = 1.0;
+  heading_arrow.color.a = 1.0;
+  marker_array.markers.push_back(heading_arrow);
   
   // 发布markers
   error_marker_pub_.publish(marker_array);
