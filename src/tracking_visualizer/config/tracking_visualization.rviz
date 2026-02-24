@@ -51,6 +51,7 @@ Visualization Manager:
       Plane Cell Count: 20
       Reference Frame: world
       Value: true
+    # 无人机轨迹路径
     - Alpha: 1
       Buffer Length: 1
       Class: rviz/Path
@@ -60,7 +61,7 @@ Visualization Manager:
       Head Length: 0.20000000298023224
       Length: 0.30000001192092896
       Line Style: Lines
-      Line Width: 0.029999999329447746
+      Line Width: 0.05
       Name: Drone Path
       Offset:
         X: 0
@@ -75,6 +76,8 @@ Visualization Manager:
       Topic: /tracking_viz/drone_path
       Unreliable: false
       Value: true
+    
+    # 目标轨迹路径
     - Alpha: 1
       Buffer Length: 1
       Class: rviz/Path
@@ -84,7 +87,7 @@ Visualization Manager:
       Head Length: 0.20000000298023224
       Length: 0.30000001192092896
       Line Style: Lines
-      Line Width: 0.029999999329447746
+      Line Width: 0.05
       Name: Target Path
       Offset:
         X: 0
@@ -99,10 +102,12 @@ Visualization Manager:
       Topic: /tracking_viz/target_path
       Unreliable: false
       Value: true
+    
+    # 误差标记（包含连线、文本、球体等）
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /tracking_viz/error_markers
-      Name: Error Markers
+      Name: Tracking Error Markers
       Namespaces:
         {}
       Queue Size: 100

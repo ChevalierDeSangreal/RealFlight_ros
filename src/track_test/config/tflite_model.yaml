@@ -7,18 +7,18 @@ use_neural_control: true
 
 # Model path (onboard mode - absolute path)
 # You may need to adjust this path based on your installation
-model_path: "/home/core/wangzimo/RealFlight_ros/src/track_test/config/trackVer16_policyVer6.tflite"
+model_path: "/home/core/wangzimo/RealFlight_ros/src/track_test/config/trackVer16_policyVer5.tflite"
 # model_path: "/home/core/wangzimo/Aquila/aquila/param/tflite/trackVer12_policy_stablerer.tflite"
 
 # Model path (SITL mode - absolute path)
-model_path_sitl: "/home/core/wangzimo/RealFlight_ros/src/track_test/config/trackVer16_policyVer6.tflite"
+model_path_sitl: "/home/core/wangzimo/RealFlight_ros/src/track_test/config/trackVer16_policyVer5.tflite"
 # model_path_sitl: "/home/carlson/wangzimo/RealFlight/src/track_test/config/trackVer8_policy_stabler.tflite"
 # model_path_sitl: "/home/core/wangzimo/Aquila/aquila/param/tflite/trackVer12_policy_stablerer.tflite"
 
 # Control timing (50Hz version - matches 50-step buffer)
 action_update_period: 0.02  # 50 Hz neural network inference (dt=0.02s)
 control_send_period: 0.01    # 100 Hz control loop for command transmission
-hover_duration: 25.0  # Duration to run trajectory control [seconds]
+hover_duration: 30.0  # Duration to run trajectory control [seconds]
 
 # Fallback hover parameters (used if neural control fails)
 hover_thrust: 0.76  # Normalized thrust for hovering [0.0-1.0]

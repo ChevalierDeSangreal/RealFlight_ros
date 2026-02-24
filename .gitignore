@@ -4,3 +4,7 @@ build/
 devel/
 .catkin_tools/
 .catkin_workspace
+src/track_test/config/trackVer13*
+src/track_test/config/trackVer14*
+src/track_test/config/trackVer15*
+src/track_test/config/trackVer17*
