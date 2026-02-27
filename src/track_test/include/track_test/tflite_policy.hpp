@@ -15,6 +15,8 @@
 // Constants from model_info.txt (50Hz version for track_test)
 constexpr int BUFFER_SIZE = 50;        // 动作-状态缓冲区大小（50Hz版本）
 constexpr int ACTION_DIM = 4;          // 动作维度（四旋翼控制指令）
+constexpr int AUX_OUTPUT_DIM = 3;      // 辅助输出维度（目标速度预测，机体系）
+constexpr int TOTAL_OUTPUT_DIM = ACTION_DIM + AUX_OUTPUT_DIM;  // 总输出维度 = 7
 constexpr int OBS_DIM = 9;             // 观测维度（机体系速度3 + 机体系重力3 + 机体系目标位置3）
 constexpr int INPUT_DIM = BUFFER_SIZE * (ACTION_DIM + OBS_DIM);  // 总输入维度 = 50*(4+9) = 650
 
@@ -126,17 +128,17 @@ public:
     }
     
     /**
-     * 获取动作
+     * 获取动作和辅助输出
      * @param obs 当前观测
-     * @return 控制动作
+     * @return 完整输出 [action(4), aux_output(3)] = 7维
      * 
      * 注意：逻辑必须与训练代码 bptt.py 一致！
      * 训练时的步骤：
      * 先用【空动作+新观测】更新buffer → 推理 → 用【新动作+新观测】更新buffer
      */
-    std::vector<float> get_action(const std::vector<float>& obs) {
+    std::vector<float> get_action_and_aux(const std::vector<float>& obs) {
         if (!initialized_) {
-            return std::vector<float>(ACTION_DIM, 0.0f);
+            return std::vector<float>(TOTAL_OUTPUT_DIM, 0.0f);
         }
         
         // 步骤1：先用【空动作 + 新观测】临时更新buffer（用于推理）
@@ -144,8 +146,11 @@ public:
         std::vector<float> empty_action(ACTION_DIM, 0.0f);
         buffer_.update(obs, empty_action);
         
-        // 步骤2：用临时buffer获取新动作（推理）
-        last_action_ = compute_action();  // compute_action内部使用buffer
+        // 步骤2：用临时buffer获取新输出（推理），返回完整7维输出
+        std::vector<float> full_output = compute_action_and_aux();  // 返回7维
+        
+        // 提取动作部分（前4维）
+        last_action_.assign(full_output.begin(), full_output.begin() + ACTION_DIM);
         
         // 步骤3：用【新动作 + 新观测】更新buffer（真正保存）
         // 替换刚才的empty_action为真实action
@@ -153,7 +158,18 @@ public:
         
         is_new_inference_ = true;  // 标记为新推理
         
-        return last_action_;
+        return full_output;  // 返回完整7维输出
+    }
+    
+    /**
+     * 获取动作（仅返回前4维，保持向后兼容）
+     * @param obs 当前观测
+     * @return 控制动作（4维）
+     */
+    std::vector<float> get_action(const std::vector<float>& obs) {
+        std::vector<float> full_output = get_action_and_aux(obs);
+        // 只返回前4维动作
+        return std::vector<float>(full_output.begin(), full_output.begin() + ACTION_DIM);
     }
     
     /**
@@ -202,11 +218,11 @@ public:
 
 private:
     /**
-     * 计算动作（实际推理）
+     * 计算动作和辅助输出（实际推理）
      * 使用当前buffer进行推理（buffer已经包含了obs）
-     * @return 控制动作
+     * @return 完整输出 [action(4), aux_output(3)] = 7维
      */
-    std::vector<float> compute_action() {
+    std::vector<float> compute_action_and_aux() {
         // 获取展平的缓冲区数据
         std::vector<float> input_data = buffer_.get_flattened_buffer();
         
@@ -219,16 +235,27 @@ private:
         // 推理
         if (interpreter_->Invoke() != kTfLiteOk) {
             std::cerr << "[TFLite] Failed to invoke interpreter" << std::endl;
-            return std::vector<float>(ACTION_DIM, 0.0f);
+            return std::vector<float>(TOTAL_OUTPUT_DIM, 0.0f);
         }
         
-        // 获取输出
+        // 获取输出（7维）
         float* output = interpreter_->typed_output_tensor<float>(0);
         
-        // 复制输出数据
-        std::vector<float> action(output, output + ACTION_DIM);
+        // 复制输出数据（完整7维）
+        std::vector<float> full_output(output, output + TOTAL_OUTPUT_DIM);
         
-        return action;
+        return full_output;
+    }
+    
+    /**
+     * 计算动作（实际推理，仅返回前4维，保持向后兼容）
+     * 使用当前buffer进行推理（buffer已经包含了obs）
+     * @return 控制动作（4维）
+     */
+    std::vector<float> compute_action() {
+        std::vector<float> full_output = compute_action_and_aux();
+        // 只返回前4维动作
+        return std::vector<float>(full_output.begin(), full_output.begin() + ACTION_DIM);
     }
     
     /**

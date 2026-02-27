@@ -68,6 +68,9 @@ TrackTestNode::TrackTestNode(ros::NodeHandle& nh, ros::NodeHandle& nh_private, i
   , target_vx_(0.0)
   , target_vy_(0.0)
   , target_vz_(0.0)
+  , predicted_target_vx_(0.0)
+  , predicted_target_vy_(0.0)
+  , predicted_target_vz_(0.0)
   , current_action_(4, 0.0f)  // Initialize with zero action [thrust, omega_x, omega_y, omega_z]
   , step_counter_(0)           // Initialize step counter
 {
@@ -134,6 +137,10 @@ TrackTestNode::TrackTestNode(ros::NodeHandle& nh, ros::NodeHandle& nh_private, i
     
   state_cmd_pub_ = nh_.advertise<std_msgs::Int32>(
       "/state/command_drone_" + std::to_string(drone_id_), 10);
+  
+  // Publisher for predicted target velocity (body frame)
+  predicted_target_vel_pub_ = nh_.advertise<geometry_msgs::TwistStamped>(
+      "/predicted_target/velocity", 10);
   
   // Subscribers
   state_sub_ = nh_.subscribe<std_msgs::Int32>(
@@ -547,15 +554,36 @@ void TrackTestNode::update_neural_action()
   // Normalize observation to [-1, 1] range (CRITICAL: must match training!)
   normalize_observation(obs_normalized);
   
-  // Get action from neural network
+  // Get full output from neural network (7D: action + aux_output)
   // Note: With separate 50Hz timer, we don't need internal action repeat anymore
-  std::vector<float> action = policy_->get_action(obs_normalized);
+  std::vector<float> full_output = policy_->get_action_and_aux(obs_normalized);
+  
+  // Extract action (first 4 dims) and auxiliary output (last 3 dims)
+  std::vector<float> action(full_output.begin(), full_output.begin() + 4);
+  std::vector<float> aux_output(full_output.begin() + 4, full_output.end());
   
   // Update current action (thread-safe)
   {
     std::lock_guard<std::mutex> lock(action_mutex_);
     current_action_ = action;
   }
+  
+  // Update predicted target velocity (body frame, thread-safe)
+  {
+    std::lock_guard<std::mutex> lock(predicted_vel_mutex_);
+    predicted_target_vx_ = aux_output[0];
+    predicted_target_vy_ = aux_output[1];
+    predicted_target_vz_ = aux_output[2];
+  }
+  
+  // Publish predicted target velocity (body frame)
+  geometry_msgs::TwistStamped predicted_vel_msg;
+  predicted_vel_msg.header.stamp = ros::Time::now();
+  predicted_vel_msg.header.frame_id = "body";
+  predicted_vel_msg.twist.linear.x = aux_output[0];
+  predicted_vel_msg.twist.linear.y = aux_output[1];
+  predicted_vel_msg.twist.linear.z = aux_output[2];
+  predicted_target_vel_pub_.publish(predicted_vel_msg);
   
   // Calculate elapsed time
   double elapsed = (ros::Time::now() - hover_start_time_).toSec();
@@ -577,6 +605,9 @@ void TrackTestNode::update_neural_action()
   
   ROS_INFO_THROTTLE(2.0, "[NN RAW OUTPUT] thrust_raw=%.6f, omega_x=%.6f, omega_y=%.6f, omega_z=%.6f",
                     thrust_raw, omega_x_norm, omega_y_norm, omega_z_norm);
+  
+  ROS_INFO_THROTTLE(2.0, "[NN AUX OUTPUT] predicted_target_v_body=[%.6f, %.6f, %.6f]",
+                    aux_output[0], aux_output[1], aux_output[2]);
   
   ROS_INFO_THROTTLE(2.0, "=====================================");
 }

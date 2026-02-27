@@ -4,8 +4,8 @@ import numpy as np
 import os
 
 # 读取数据
-# data = pd.read_csv('/tmp/realflight_tracking_data.csv')
-data = pd.read_csv('/home/core/wangzimo/RealFlight_ros/test_log/circle.csv')
+data = pd.read_csv('/tmp/realflight_tracking_data.csv')
+# data = pd.read_csv('/home/core/wangzimo/RealFlight_ros/test_log/circle.csv')
 
 # 打印数据基本信息
 print(f"数据总行数: {len(data)}")

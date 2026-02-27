@@ -13,6 +13,7 @@ TrackingVisualizerNode::TrackingVisualizerNode(ros::NodeHandle& nh,
   : nh_(nh), nh_private_(nh_private),
     drone_pose_received_(false), drone_vel_received_(false),
     target_pos_received_(false), target_vel_received_(false),
+    predicted_target_vel_received_(false),
     current_state_(FsmState::INIT), in_traj_state_(false),
     traj_start_time_(ros::Time(0)),
     mean_distance_error_(0.0), max_distance_error_(0.0),
@@ -74,6 +75,10 @@ TrackingVisualizerNode::TrackingVisualizerNode(ros::NodeHandle& nh,
     "/target/velocity", 10,
     &TrackingVisualizerNode::target_vel_callback, this);
   
+  predicted_target_vel_sub_ = nh_.subscribe<geometry_msgs::TwistStamped>(
+    "/predicted_target/velocity", 10,
+    &TrackingVisualizerNode::predicted_target_vel_callback, this);
+  
   std::string state_topic = "/state/state_drone_" + std::to_string(drone_id_);
   state_sub_ = nh_.subscribe<std_msgs::Int32>(
     state_topic, 10,
@@ -105,6 +110,7 @@ TrackingVisualizerNode::TrackingVisualizerNode(ros::NodeHandle& nh,
                     << "target_x,target_y,target_z,"
                     << "drone_vx,drone_vy,drone_vz,"
                     << "target_vx,target_vy,target_vz,"
+                    << "predicted_target_vx,predicted_target_vy,predicted_target_vz,"
                     << "distance_error,velocity_error\n";
       ROS_INFO("Saving tracking data to: %s", output_file_path_.c_str());
     } else {
@@ -221,6 +227,7 @@ void TrackingVisualizerNode::drone_pose_callback(
       data.target_pos = current_target_pos_.point;
       data.drone_vel = current_drone_vel_.twist.linear;
       data.target_vel = current_target_vel_.twist.linear;
+      data.predicted_target_vel = current_predicted_target_vel_.twist.linear;
       data.distance_error = calculate_distance_error();
       data.velocity_error = calculate_velocity_error();
       
@@ -255,6 +262,8 @@ void TrackingVisualizerNode::drone_pose_callback(
                       << data.drone_vel.z << ","
                       << data.target_vel.x << "," << data.target_vel.y << "," 
                       << data.target_vel.z << ","
+                      << data.predicted_target_vel.x << "," << data.predicted_target_vel.y << "," 
+                      << data.predicted_target_vel.z << ","
                       << data.distance_error << "," << data.velocity_error << "\n";
         // 立即flush，确保数据写入磁盘
         output_file_->flush();
@@ -313,6 +322,18 @@ void TrackingVisualizerNode::target_vel_callback(
   current_target_vel_ = *msg;
   current_target_vel_.header.frame_id = "world";
   target_vel_received_ = true;
+}
+
+void TrackingVisualizerNode::predicted_target_vel_callback(
+    const geometry_msgs::TwistStamped::ConstPtr& msg) {
+  if (!std::isfinite(msg->twist.linear.x) || !std::isfinite(msg->twist.linear.y) || 
+      !std::isfinite(msg->twist.linear.z)) {
+    return;
+  }
+  
+  current_predicted_target_vel_ = *msg;
+  current_predicted_target_vel_.header.frame_id = "body";  // 预测速度在机体系
+  predicted_target_vel_received_ = true;
 }
 
 void TrackingVisualizerNode::visualization_timer_callback(

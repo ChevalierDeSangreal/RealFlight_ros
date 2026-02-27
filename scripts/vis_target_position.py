@@ -23,7 +23,7 @@ visplanner_log = os.path.join(os.path.dirname(os.path.dirname(script_dir)), 'vis
 
 # Data sources configuration
 data_sources = {
-    'RealFlight': realflight_log,
+    'AgileTracker': realflight_log,
     'Elastic-Tracker': elastic_log,
     'visPlanner': visplanner_log
 }
@@ -178,12 +178,13 @@ traj_colors = {
 }
 
 # Plot for each system
-for idx, system_name in enumerate(['RealFlight', 'Elastic-Tracker', 'visPlanner']):
+for idx, system_name in enumerate(['AgileTracker', 'Elastic-Tracker', 'visPlanner']):
     ax = axes[idx]
     
     if system_name not in all_rel_positions or len(all_rel_positions[system_name]) == 0:
         ax.text(0.5, 0.5, 'No Data', ha='center', va='center', transform=ax.transAxes)
-        ax.set_title(system_name)
+        title = 'AgileTracker (Ours)' if system_name == 'AgileTracker' else system_name
+        ax.set_title(title)
         continue
     
     # Set up the square plot area
@@ -235,7 +236,9 @@ for idx, system_name in enumerate(['RealFlight', 'Elastic-Tracker', 'visPlanner'
     # Set labels and title
     ax.set_xlabel('X (m)')
     ax.set_ylabel('Y (m)')
-    ax.set_title(system_name)
+    # Add "(Ours)" suffix for AgileTracker
+    title = 'AgileTracker (Ours)' if system_name == 'AgileTracker' else system_name
+    ax.set_title(title)
     ax.grid(True, alpha=0.3)
     ax.legend(loc='best')
     

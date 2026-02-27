@@ -125,12 +125,19 @@ private:
   std::vector<float> current_action_;  // [thrust, omega_x, omega_y, omega_z]
   std::mutex action_mutex_;            // Protect current_action_ from concurrent access
   
+  // Predicted target velocity (body frame, from neural network auxiliary output)
+  double predicted_target_vx_;  // Predicted target velocity in body frame X
+  double predicted_target_vy_;  // Predicted target velocity in body frame Y
+  double predicted_target_vz_;  // Predicted target velocity in body frame Z
+  std::mutex predicted_vel_mutex_;  // Protect predicted velocity from concurrent access
+  
   // Step counter for debugging
   int step_counter_;                   // Track number of neural network inference steps
   
   // ROS interfaces
   ros::Publisher attitude_pub_;
   ros::Publisher state_cmd_pub_;
+  ros::Publisher predicted_target_vel_pub_;  // Publisher for predicted target velocity
   ros::Subscriber state_sub_;
   ros::Subscriber local_pos_sub_;
   ros::Subscriber local_vel_sub_;
