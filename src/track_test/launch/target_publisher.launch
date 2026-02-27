@@ -5,9 +5,9 @@
   
   <!-- Trajectory configuration file selection -->
   <!-- Uncomment ONE of the following lines to select trajectory type -->
-  <!-- <arg name="config_file" default="$(find track_test)/config/target_publisher_params.yaml"/>          Circle trajectory -->
+  <arg name="config_file" default="$(find track_test)/config/target_publisher_params.yaml"/>          Circle trajectory
   <!-- <arg name="config_file" default="$(find track_test)/config/target_publisher_params_figure8.yaml"/> Figure-8 trajectory -->
-  <arg name="config_file" default="$(find track_test)/config/target_publisher_params_dshape.yaml"/>          D-shape trajectory
+  <!-- <arg name="config_file" default="$(find track_test)/config/target_publisher_params_dshape.yaml"/>          D-shape trajectory -->
   
   <!-- Time mode: true for SITL (simulation), false for onboard (real hardware) -->
   <arg name="use_sim_time" default="false"/>

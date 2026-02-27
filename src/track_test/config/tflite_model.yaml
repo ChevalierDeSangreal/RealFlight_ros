@@ -7,11 +7,11 @@ use_neural_control: true
 
 # Model path (onboard mode - absolute path)
 # You may need to adjust this path based on your installation
-model_path: "/home/core/wangzimo/RealFlight_ros/src/track_test/config/trackVer16_policyVer11.tflite"
+model_path: "/home/core/wangzimo/RealFlight_ros/src/track_test/config/trackVer16_policyVer5.tflite"
 # model_path: "/home/core/wangzimo/Aquila/aquila/param/tflite/trackVer12_policy_stablerer.tflite"
 
 # Model path (SITL mode - absolute path)
-model_path_sitl: "/home/core/wangzimo/RealFlight_ros/src/track_test/config/trackVer16_policyVer11.tflite"
+model_path_sitl: "/home/core/wangzimo/RealFlight_ros/src/track_test/config/trackVer16_policyVer5.tflite"
 # model_path_sitl: "/home/carlson/wangzimo/RealFlight/src/track_test/config/trackVer8_policy_stabler.tflite"
 # model_path_sitl: "/home/core/wangzimo/Aquila/aquila/param/tflite/trackVer12_policy_stablerer.tflite"
 
@@ -46,5 +46,10 @@ target_offset_distance: 1.0  # 静态模式：目标距离无人机的距离[m]�
 # - Observation space (9D, body frame):
 #   - Body velocity (3), Body gravity direction (3), Body target position (3)
 
+# ========== Thrust Weight Ratio Change Configuration ==========
+# Used for testing model performance under payload changes
+enable_thrust_change: True  # 是否启用推力归一化变化
+thrust_weight_ratio: 1.2     # 推力归一化权重 [0.0-1.0]，例如0.5表示最大推力为原来的50%
+thrust_change_time: 5.0      # 推力变化时刻 [秒]，轨迹跟踪开始后几秒变化
 
 

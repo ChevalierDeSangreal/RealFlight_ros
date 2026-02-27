@@ -39,6 +39,7 @@ private:
   void target_pos_callback(const geometry_msgs::PointStamped::ConstPtr& msg);
   void target_vel_callback(const geometry_msgs::TwistStamped::ConstPtr& msg);
   void predicted_target_vel_callback(const geometry_msgs::TwistStamped::ConstPtr& msg);
+  void thrust_output_callback(const std_msgs::Float64::ConstPtr& msg);  // 推力输出回调
   void state_callback(const std_msgs::Int32::ConstPtr& msg);
   void visualization_timer_callback(const ros::TimerEvent& event);
   
@@ -63,6 +64,7 @@ private:
   ros::Subscriber target_pos_sub_;
   ros::Subscriber target_vel_sub_;
   ros::Subscriber predicted_target_vel_sub_;
+  ros::Subscriber thrust_output_sub_;  // 订阅神经网络推力输出
   ros::Subscriber state_sub_;
   
   // 发布器
@@ -107,6 +109,7 @@ private:
     geometry_msgs::Vector3 drone_vel;
     geometry_msgs::Vector3 target_vel;
     geometry_msgs::Vector3 predicted_target_vel;  // 预测的目标速度（机体系）
+    double thrust_output;  // 神经网络推力输出 (0-1)
     double distance_error;
     double velocity_error;
   };
@@ -121,12 +124,14 @@ private:
   geometry_msgs::PointStamped current_target_pos_;
   geometry_msgs::TwistStamped current_target_vel_;
   geometry_msgs::TwistStamped current_predicted_target_vel_;  // 预测的目标速度
+  double current_thrust_output_;  // 当前神经网络推力输出
   
   bool drone_pose_received_;
   bool drone_vel_received_;
   bool target_pos_received_;
   bool target_vel_received_;
   bool predicted_target_vel_received_;
+  bool thrust_output_received_;  // 推力输出是否接收
   
   // 统计信息
   double mean_distance_error_;

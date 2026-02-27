@@ -134,10 +134,17 @@ private:
   // Step counter for debugging
   int step_counter_;                   // Track number of neural network inference steps
   
+  // Thrust weight ratio change parameters (for testing payload changes)
+  bool enable_thrust_change_;          // Enable thrust normalization change
+  double thrust_weight_ratio_;         // Thrust weight ratio [0.0-1.0]
+  double thrust_change_time_;          // Time to change thrust [s] after trajectory tracking starts
+  bool thrust_changed_;                // Flag to track if thrust has been changed
+  
   // ROS interfaces
   ros::Publisher attitude_pub_;
   ros::Publisher state_cmd_pub_;
   ros::Publisher predicted_target_vel_pub_;  // Publisher for predicted target velocity
+  ros::Publisher thrust_output_pub_;  // Publisher for neural network thrust output
   ros::Subscriber state_sub_;
   ros::Subscriber local_pos_sub_;
   ros::Subscriber local_vel_sub_;

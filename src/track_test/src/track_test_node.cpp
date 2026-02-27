@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstdio>
 #include <string>
+#include <std_msgs/Float64.h>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -73,6 +74,10 @@ TrackTestNode::TrackTestNode(ros::NodeHandle& nh, ros::NodeHandle& nh_private, i
   , predicted_target_vz_(0.0)
   , current_action_(4, 0.0f)  // Initialize with zero action [thrust, omega_x, omega_y, omega_z]
   , step_counter_(0)           // Initialize step counter
+  , enable_thrust_change_(false)
+  , thrust_weight_ratio_(1.0)
+  , thrust_change_time_(5.0)
+  , thrust_changed_(false)
 {
   // Read parameters from node's private namespace (loaded from YAML in launch file)
   nh_private_.param("hover_duration", hover_duration_, 3.0);  // TRAJ control duration: 3.0s
@@ -97,6 +102,11 @@ TrackTestNode::TrackTestNode(ros::NodeHandle& nh, ros::NodeHandle& nh_private, i
   nh_private_.param<std::string>("target_velocity_topic", target_velocity_topic_, "/target/velocity");
   nh_private_.param("target_offset_distance", target_offset_distance_, 1.0);  // Default 1m ahead
   
+  // Thrust weight ratio change parameters (for testing payload changes)
+  nh_private_.param("enable_thrust_change", enable_thrust_change_, false);
+  nh_private_.param("thrust_weight_ratio", thrust_weight_ratio_, 1.0);
+  nh_private_.param("thrust_change_time", thrust_change_time_, 5.0);
+  
   // Initialize target generator
   target_generator_ = std::make_unique<TargetGenerator>(
     &nh_, 
@@ -117,6 +127,12 @@ TrackTestNode::TrackTestNode(ros::NodeHandle& nh, ros::NodeHandle& nh_private, i
     ROS_INFO("    - Velocity topic: %s", target_velocity_topic_.c_str());
   } else {
     ROS_INFO("    - Offset distance: %.2f m (in front of drone)", target_offset_distance_);
+  }
+  ROS_INFO("  - Thrust change: %s", enable_thrust_change_ ? "ENABLED" : "DISABLED");
+  if (enable_thrust_change_) {
+    ROS_INFO("    - Thrust weight ratio: %.2f (max thrust = %.0f%% of original)", 
+             thrust_weight_ratio_, thrust_weight_ratio_ * 100.0);
+    ROS_INFO("    - Change time: %.2f s after tracking starts", thrust_change_time_);
   }
   
   // Initialize neural network policy (REQUIRED)
@@ -141,6 +157,10 @@ TrackTestNode::TrackTestNode(ros::NodeHandle& nh, ros::NodeHandle& nh_private, i
   // Publisher for predicted target velocity (body frame)
   predicted_target_vel_pub_ = nh_.advertise<geometry_msgs::TwistStamped>(
       "/predicted_target/velocity", 10);
+  
+  // Publisher for neural network thrust output (normalized 0-1)
+  thrust_output_pub_ = nh_.advertise<std_msgs::Float64>(
+      "/neural_network/thrust_output", 10);
   
   // Subscribers
   state_sub_ = nh_.subscribe<std_msgs::Int32>(
@@ -233,6 +253,7 @@ void TrackTestNode::state_callback(const std_msgs::Int32::ConstPtr& msg)
     neural_control_ready_ = false;  // Reset - will be set to true after stabilization delay
     hover_start_time_ = ros::Time::now();
     step_counter_ = 0;  // Reset step counter
+    thrust_changed_ = false;  // Reset thrust change flag
     
     // Capture current position for hover
     hover_x_ = current_x_;
@@ -652,6 +673,21 @@ void TrackTestNode::publish_current_action()
   // Thrust mapping: [-1, 1] -> [0, 1]
   float thrust_normalized = (thrust_raw + 1.0f) * 0.5f;
   
+  // Calculate elapsed time from timestamp
+  double elapsed = (ros::Time::now() - hover_start_time_).toSec();
+  
+  // Apply thrust weight ratio change if enabled and time condition is met
+  if (enable_thrust_change_ && !thrust_changed_ && elapsed >= thrust_change_time_) {
+    thrust_changed_ = true;
+    ROS_WARN("⚠️  THRUST CHANGE ACTIVATED at t=%.2f s: Thrust ratio = %.2f (%.0f%% of original max thrust)",
+             elapsed, thrust_weight_ratio_, thrust_weight_ratio_ * 100.0);
+  }
+  
+  // Apply thrust weight ratio to the normalized thrust
+  if (enable_thrust_change_ && thrust_changed_) {
+    thrust_normalized *= thrust_weight_ratio_;
+  }
+  
   // Create MAVROS AttitudeTarget message
   mavros_msgs::AttitudeTarget msg;
   
@@ -680,9 +716,6 @@ void TrackTestNode::publish_current_action()
   msg.orientation.y = 0.0;
   msg.orientation.z = 0.0;
   
-  // Calculate elapsed time from timestamp
-  double elapsed = (ros::Time::now() - hover_start_time_).toSec();
-  
   // // Debug: Print control commands in the first 0.5 seconds
   // if (elapsed < 0.5) {
   //   ROS_INFO("[t=%.3fs] [PUBLISH@100Hz] thrust=%.3f(raw=%.3f), rates=[%.3f, %.3f, %.3f] rad/s",
@@ -691,8 +724,14 @@ void TrackTestNode::publish_current_action()
   //            roll_rate, pitch_rate, yaw_rate);
   // }
   
-  // Publish
+  // Publish control commands
   attitude_pub_.publish(msg);
+  
+  // Publish neural network thrust output (RAW output from network in [-1, 1] range)
+  // This is the direct tanh output before normalization to [0, 1]
+  std_msgs::Float64 thrust_msg;
+  thrust_msg.data = thrust_raw;  // Publish raw network output [-1, 1]
+  thrust_output_pub_.publish(thrust_msg);
 }
 
 void TrackTestNode::send_state_command(int state)

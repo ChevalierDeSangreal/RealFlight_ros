@@ -17,7 +17,7 @@ trajectory_center_x: 0.0     # Trajectory center East position (ENU) [m] - Drone
 trajectory_center_y: 0.0     # Trajectory center North position (ENU) [m]
 trajectory_center_z: 1.2     # Trajectory center Up position (ENU, positive is up) [m]
 trajectory_times: 1          # Number of trajectory cycles
-trajectory_duration: 6.0     # Single trajectory cycle duration [s]
+trajectory_duration: 16.0     # Single trajectory cycle duration [s]
 
 # Legacy circular motion parameters (for backward compatibility)
 circle_radius: 2.0           # Circular trajectory radius [m]
